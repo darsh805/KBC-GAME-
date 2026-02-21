@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBC Cricket - 4 Lifelines</title>
+    <style>
+        body {
+            background: linear-gradient(rgba(0, 0, 50, 0.7), rgba(0, 0, 50, 0.7)), 
+                        url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            color: white; font-family: 'Segoe UI', sans-serif;
+            display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0;
+        }
+
+        .container { width: 90%; max-width: 900px; text-align: center; }
+
+        #start-screen { background: rgba(0, 0, 50, 0.9); padding: 50px; border-radius: 20px; border: 3px solid #ffd700; box-shadow: 0 0 30px #ffd700; }
+        #game-screen { display: none; }
+
+        #money-display { font-size: 28px; color: #ffd700; text-shadow: 0 0 10px #ffd700; border: 2px solid #ffd700; padding: 10px 30px; display: inline-block; border-radius: 50px; background: rgba(0,0,0,0.6); margin-bottom: 15px; }
+
+        /* TIMER LINE - UNCHANGED */
+        .timer-container { width: 100%; height: 10px; background-color: #333; border-radius: 5px; margin-bottom: 20px; overflow: hidden; }
+        #timer-bar { width: 100%; height: 100%; background: linear-gradient(to right, #00ff00, #ff0000); transition: width 1s linear; }
+        #timer-text { font-size: 20px; color: #ff4d4d; font-weight: bold; margin-bottom: 10px; }
+
+        .quiz-area { background: rgba(0, 0, 80, 0.85); border: 2px solid rgba(51, 204, 255, 0.5); border-radius: 20px; padding: 30px; box-shadow: 0 10px 50px rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .btn { background: linear-gradient(to right, #000044, #000088); border: 1.5px solid #33ccff; color: white; padding: 18px; font-size: 17px; cursor: pointer; border-radius: 35px; text-align: left; padding-left: 25px; transition: 0.3s; }
+        .correct { background: linear-gradient(to right, #004d00, #00cc00) !important; }
+        .wrong { background: linear-gradient(to right, #660000, #ff0000) !important; }
+
+        /* Lifelines */
+        .lifeline-bar { margin-top: 25px; display: flex; justify-content: center; gap: 10px; }
+        .ll-btn { background: #cc0000; color: white; border: 1px solid white; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        .ll-btn:disabled { background: #444; opacity: 0.6; cursor: not-allowed; text-decoration: line-through; }
+
+        /* Poll Bars */
+        #poll-container { display: none; margin-top: 20px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; }
+        .poll-flex { display: flex; justify-content: space-around; align-items: flex-end; height: 80px; }
+        .bar { width: 30px; background: #ffd700; color: black; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="start-screen">
+        <h1 style="color:#ffd700; font-size: 40px;">KBC CRICKET</h1>
+        <button class="ll-btn" style="padding: 20px 40px; font-size: 20px;" onclick="startGame()">START GAME</button>
+    </div>
+
+    <div id="game-screen">
+        <div id="money-display">? 0</div>
+        <div id="timer-text">Time Left: 20s</div>
+        <div class="timer-container"><div id="timer-bar"></div></div>
+
+        <div class="quiz-area">
+            <div id="question-text">Question Loading...</div>
+            <div class="options-grid">
+                <button class="btn" id="btn0" onclick="handleChoice(0)">A: <span id="opt0"></span></button>
+                <button class="btn" id="btn1" onclick="handleChoice(1)">B: <span id="opt1"></span></button>
+                <button class="btn" id="btn2" onclick="handleChoice(2)">C: <span id="opt2"></span></button>
+                <button class="btn" id="btn3" onclick="handleChoice(3)">D: <span id="opt3"></span></button>
+            </div>
+
+            <div id="poll-container">
+                <div class="poll-flex" id="poll-bars"></div>
+                <div style="display: flex; justify-content: space-around; font-size: 12px; margin-top: 5px;">
+                    <span>A</span><span>B</span><span>C</span><span>D</span>
+                </div>
+            </div>
+
+            <div class="lifeline-bar">
+                <button class="ll-btn" id="ll-5050" onclick="use5050()">50:50</button>
+                <button class="ll-btn" id="ll-poll" onclick="usePoll()">Audience Poll</button>
+                <button class="ll-btn" id="ll-phone" onclick="usePhone()">Phone Friend</button>
+                <button class="ll-btn" id="ll-double" onclick="useDouble()">Double Dip</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "How many players are in a cricket team?", o: ["10", "11", "12", "9"], a: 1 },
+        { q: "Which country won the 1983 World Cup?", o: ["Australia", "India", "West Indies", "England"], a: 1 },
+        { q: "Who is the 'God of Cricket'?", o: ["Sachin Tendulkar", "MS Dhoni", "Virat Kohli", "Sourav Ganguly"], a: 0 },
+        { q: "What is the length of a pitch in yards?", o: ["20", "22", "24", "26"], a: 1 },
+        { q: "How many balls are in a standard over?", o: ["4", "5", "6", "8"], a: 2 },
+        { q: "Which stadium is in Kolkata?", o: ["Wankhede", "Lord's", "Eden Gardens", "MCG"], a: 2 },
+        { q: "Who won the 2011 World Cup?", o: ["India", "Sri Lanka", "Pakistan", "Australia"], a: 0 },
+        { q: "First player to score 100 centuries?", o: ["Ricky Ponting", "Sachin Tendulkar", "Virat Kohli", "Brian Lara"], a: 1 },
+        { q: "Who hit 6 sixes in an over in T20 WC 2007?", o: ["Yuvraj Singh", "Chris Gayle", "Dhoni", "Pollard"], a: 0 },
+        { q: "Who is known as 'Captain Cool'?", o: ["Virat Kohli", "MS Dhoni", "Rohit Sharma", "Kapil Dev"], a: 1 },
+        { q: "Highest score in Test cricket by a player?", o: ["300", "375", "400", "450"], a: 2 },
+        { q: "IPL 2024 Winner?", o: ["CSK", "RCB", "KKR", "SRH"], a: 2 },
+        { q: "Which bowler has most Test wickets?", o: ["Warne", "Muralitharan", "Kumble", "Anderson"], a: 1 },
+        { q: "Mecca of Cricket?", o: ["Eden Gardens", "Lord's", "MCG", "Wankhede"], a: 1 },
+        { q: "Rawalpindi Express?", o: ["Brett Lee", "Shoaib Akhtar", "Shaun Tait", "Umran Malik"], a: 1 },
+        { q: "Nickname of Rahul Dravid?", o: ["The Wall", "The Rock", "The King", "The Master"], a: 0 },
+        { q: "Most runs in a single IPL season?", o: ["Chris Gayle", "Virat Kohli", "Jos Buttler", "David Warner"], a: 1 },
+        { q: "Ashes is played between Aus and?", o: ["India", "England", "South Africa", "New Zealand"], a: 1 },
+        { q: "Winner of 2024 T20 World Cup?", o: ["South Africa", "England", "India", "Australia"], a: 2 },
+        { q: "First Indian to take a Test Hat-trick?", o: ["Anil Kumble", "Harbhajan Singh", "Irfan Pathan", "Jasprit Bumrah"], a: 1 }
+    ];
+
+    const rewards = [1000, 2000, 3000, 5000, 10000, 20000, 40000, 80000, 160000, 320000, 640000, 1250000, 2500000, 5000000, 10000000, 20000000, 30000000, 50000000, 70000000, 100000000];
+
+    let currentIdx = 0, winnings = 0, timeLeft = 20, timerInterval, canClick = true;
+    let isDoubleDip = false, doubleDipUsed = false;
+
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentIdx >= questions.length) { alert("CROREPATI!"); return; }
+        canClick = true; doubleDipUsed = false;
+        document.getElementById('poll-container').style.display = 'none';
+        timeLeft = 20;
+        updateTimerBar();
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerBar();
+            if(timeLeft <= 0) { clearInterval(timerInterval); gameOver("Time Up!"); }
+        }, 1000);
+
+        document.getElementById('question-text').innerText = `Q${currentIdx + 1}: ${questions[currentIdx].q}`;
+        for (let i = 0; i < 4; i++) {
+            const btn = document.getElementById(`btn${i}`);
+            btn.classList.remove('correct', 'wrong');
+            btn.style.visibility = "visible";
+            btn.disabled = false;
+            document.getElementById(`opt${i}`).innerText = questions[currentIdx].o[i];
+        }
+    }
+
+    function updateTimerBar() {
+        document.getElementById('timer-text').innerText = `Time Left: ${timeLeft}s`;
+        document.getElementById('timer-bar').style.width = (timeLeft / 20 * 100) + "%";
+    }
+
+    function handleChoice(num) {
+        if (!canClick) return;
+        const correct = questions[currentIdx].a;
+        const btn = document.getElementById(`btn${num}`);
+
+        if (num === correct) {
+            clearInterval(timerInterval);
+            canClick = false;
+            btn.classList.add('correct');
+            winnings = rewards[currentIdx];
+            setTimeout(() => {
+                document.getElementById('money-display').innerText = "? " + winnings.toLocaleString();
+                currentIdx++;
+                isDoubleDip = false; // Reset double dip for next question
+                loadQuestion();
+            }, 1500);
+        } else {
+            if (isDoubleDip && !doubleDipUsed) {
+                btn.classList.add('wrong');
+                btn.disabled = true;
+                doubleDipUsed = true;
+                alert("First try wrong! Pick another option.");
+                return;
+            }
+            clearInterval(timerInterval);
+            canClick = false;
+            btn.classList.add('wrong');
+            document.getElementById(`btn${correct}`).classList.add('correct');
+            setTimeout(() => gameOver("Wrong Answer!"), 1500);
+        }
+    }
+
+    function gameOver(msg) { alert(msg + " Total Won: ?" + winnings.toLocaleString()); location.reload(); }
+
+    // LIFELINES
+    function use5050() {
+        let correct = questions[currentIdx].a, removed = 0;
+        for (let i = 0; i < 4; i++) {
+            if (i !== correct && removed < 2) {
+                document.getElementById(`btn${i}`).style.visibility = "hidden";
+                removed++;
+            }
+        }
+        document.getElementById('ll-5050').disabled = true;
+    }
+
+    function usePoll() {
+        document.getElementById('poll-container').style.display = 'block';
+        const correct = questions[currentIdx].a;
+        let barsHtml = "";
+        for (let i = 0; i < 4; i++) {
+            let val = (i === correct) ? Math.floor(Math.random() * 30) + 50 : Math.floor(Math.random() * 20);
+            barsHtml += `<div class="bar" style="height: ${val}%">${val}%</div>`;
+        }
+        document.getElementById('poll-bars').innerHTML = barsHtml;
+        document.getElementById('ll-poll').disabled = true;
+    }
+
+    function usePhone() {
+        const labels = ["A", "B", "C", "D"];
+        alert("Your friend thinks the answer is " + labels[questions[currentIdx].a] + "!");
+        document.getElementById('ll-phone').disabled = true;
+    }
+
+    function useDouble() {
+        isDoubleDip = true;
+        alert("Double Dip Active: You can make two mistakes!");
+        document.getElementById('ll-double').disabled = true;
+    }
+</script>
+</body>
+</html>
